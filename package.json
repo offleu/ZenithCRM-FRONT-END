@@ -1,0 +1,12 @@
+{
+  "name": "zenith-psychology-frontend",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Frontend HTML, CSS e JS do sistema gerencial para psicologas.",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

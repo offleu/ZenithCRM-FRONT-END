@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zenith Psicologia</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<main id="authView" class="auth-shell">
+    <section class="auth-panel">
+        <div>
+            <p class="eyebrow">Sistema Gerencial</p>
+            <h1>Zenith Psicologia</h1>
+        </div>
+        <form id="loginForm" class="form-grid">
+            <label>E-mail
+                <input name="email" type="email" required autocomplete="email">
+            </label>
+            <label>Senha
+                <input name="password" type="password" required autocomplete="current-password">
+            </label>
+            <button type="submit">Entrar</button>
+        </form>
+        <details>
+            <summary>Criar primeiro acesso</summary>
+            <form id="registerForm" class="form-grid">
+                <label>Nome
+                    <input name="name" required>
+                </label>
+                <label>E-mail
+                    <input name="email" type="email" required>
+                </label>
+                <label>Senha
+                    <input name="password" type="password" minlength="6" required>
+                </label>
+                <button type="submit">Cadastrar</button>
+            </form>
+        </details>
+        <p id="authMessage" class="message"></p>
+    </section>
+</main>
+
+<main id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+        <div class="brand">
+            <strong>Zenith</strong>
+            <span id="userLabel">Psicologia</span>
+        </div>
+        <nav>
+            <button class="nav-button active" data-view="dashboard">Painel</button>
+            <button class="nav-button" data-view="patients">Pacientes</button>
+            <button class="nav-button" data-view="appointments">Agenda</button>
+            <button class="nav-button" data-view="finance">Financeiro</button>
+            <button class="nav-button" data-view="documents">Documentos</button>
+        </nav>
+        <button id="logoutButton" class="secondary">Sair</button>
+    </aside>
+
+    <section class="workspace">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">MVP Gerencial</p>
+                <h2 id="viewTitle">Painel</h2>
+            </div>
+            <p id="appMessage" class="message"></p>
+        </header>
+
+        <section id="dashboard" class="view active">
+            <div class="metrics">
+                <article>
+                    <span>Pacientes</span>
+                    <strong id="metricPatients">0</strong>
+                </article>
+                <article>
+                    <span>Agenda</span>
+                    <strong id="metricAppointments">0</strong>
+                </article>
+                <article>
+                    <span>Recebido</span>
+                    <strong id="metricReceived">R$ 0,00</strong>
+                </article>
+                <article>
+                    <span>Pendente</span>
+                    <strong id="metricPending">R$ 0,00</strong>
+                </article>
+            </div>
+            <div class="split">
+                <section>
+                    <h3>Proximos atendimentos</h3>
+                    <table>
+                        <thead><tr><th>Paciente</th><th>Data</th><th>Status</th></tr></thead>
+                        <tbody id="dashboardAppointments"></tbody>
+                    </table>
+                </section>
+                <section>
+                    <h3>Financeiro do periodo</h3>
+                    <table>
+                        <thead><tr><th>Status</th><th>Quantidade</th><th>Total</th></tr></thead>
+                        <tbody id="dashboardFinance"></tbody>
+                    </table>
+                </section>
+            </div>
+        </section>
+
+        <section id="patients" class="view">
+            <form id="patientForm" class="editor">
+                <input type="hidden" name="id">
+                <label>Nome completo<input name="fullName" required></label>
+                <label>Telefone<input name="phone"></label>
+                <label>E-mail<input name="email" type="email"></label>
+                <label>Nascimento<input name="birthDate" type="date"></label>
+                <label>CPF<input name="cpf"></label>
+                <label class="wide">Observacoes clinicas<textarea name="clinicalNotes" rows="3"></textarea></label>
+                <button type="submit">Salvar paciente</button>
+                <button type="button" class="secondary" data-reset="patientForm">Limpar</button>
+            </form>
+            <table>
+                <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Acoes</th></tr></thead>
+                <tbody id="patientsTable"></tbody>
+            </table>
+        </section>
+
+        <section id="appointments" class="view">
+            <form id="appointmentForm" class="editor">
+                <input type="hidden" name="id">
+                <label>Paciente<select name="patientId" required></select></label>
+                <label>Inicio<input name="startsAt" type="datetime-local" required></label>
+                <label>Fim<input name="endsAt" type="datetime-local" required></label>
+                <label>Status<select name="status"><option>SCHEDULED</option><option>CONFIRMED</option><option>COMPLETED</option><option>CANCELED</option></select></label>
+                <label>Local<input name="location"></label>
+                <label>ID Google Evento<input name="googleEventId"></label>
+                <label class="wide">Notas<textarea name="notes" rows="3"></textarea></label>
+                <button type="submit">Salvar agenda</button>
+                <button type="button" class="secondary" data-reset="appointmentForm">Limpar</button>
+            </form>
+            <table>
+                <thead><tr><th>Paciente</th><th>Inicio</th><th>Status</th><th>Google</th><th>Acoes</th></tr></thead>
+                <tbody id="appointmentsTable"></tbody>
+            </table>
+        </section>
+
+        <section id="finance" class="view">
+            <form id="paymentForm" class="editor">
+                <input type="hidden" name="id">
+                <label>Paciente<select name="patientId" required></select></label>
+                <label>Valor<input name="amount" type="number" min="0.01" step="0.01" required></label>
+                <label>Vencimento<input name="dueDate" type="date" required></label>
+                <label>Pago em<input name="paidAt" type="date"></label>
+                <label>Status<select name="status"><option>PENDING</option><option>PAID</option><option>OVERDUE</option><option>CANCELED</option></select></label>
+                <label>Metodo<input name="method"></label>
+                <label>Referencia<input name="reference"></label>
+                <label class="wide">Observacoes<textarea name="notes" rows="3"></textarea></label>
+                <button type="submit">Salvar pagamento</button>
+                <button type="button" class="secondary" data-reset="paymentForm">Limpar</button>
+            </form>
+            <table>
+                <thead><tr><th>Paciente</th><th>Valor</th><th>Vencimento</th><th>Status</th><th>Acoes</th></tr></thead>
+                <tbody id="paymentsTable"></tbody>
+            </table>
+        </section>
+
+        <section id="documents" class="view">
+            <form id="documentForm" class="editor document-editor">
+                <input type="hidden" name="id">
+                <label>Paciente<select name="patientId" required></select></label>
+                <label>Titulo<input name="title" required></label>
+                <label>Tipo<select name="type"><option>REPORT</option><option>ANAMNESIS</option><option>CERTIFICATE</option><option>EVOLUTION</option><option>OTHER</option></select></label>
+                <label class="wide">Conteudo<textarea name="content" rows="10" required></textarea></label>
+                <button type="submit">Salvar documento</button>
+                <button type="button" class="secondary" data-reset="documentForm">Limpar</button>
+            </form>
+            <table>
+                <thead><tr><th>Paciente</th><th>Titulo</th><th>Tipo</th><th>Atualizado</th><th>Acoes</th></tr></thead>
+                <tbody id="documentsTable"></tbody>
+            </table>
+        </section>
+    </section>
+</main>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
