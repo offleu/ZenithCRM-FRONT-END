@@ -4,8 +4,8 @@
     --line: #cfd6df;
     --panel: #ffffff;
     --page: #eef1f5;
-    --primary: #1d4f73;
-    --primary-dark: #153a55;
+    --primary: #134ad9;
+    --primary-dark: #021c5e;
     --danger: #8b1e1e;
     --ok: #1f6845;
 }
@@ -17,7 +17,6 @@
 body {
     margin: 0;
     color: var(--ink);
-    background: var(--page);
     font-family: Arial, Helvetica, sans-serif;
     letter-spacing: 0;
 }
@@ -72,11 +71,13 @@ button:hover {
 .auth-panel {
     width: min(520px, 100%);
     background: var(--panel);
-    border: 1px solid var(--line);
     padding: 32px;
 }
 
 .eyebrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin: 0 0 4px;
     color: var(--muted);
     font-size: 12px;
@@ -383,4 +384,11 @@ td.actions button {
     to {
         transform: rotate(360deg);
     }
+}
+
+.logo {
+    width: 180px;
+    margin: 0 auto -15px;
+    margin-left: 125px;
+    
 }
