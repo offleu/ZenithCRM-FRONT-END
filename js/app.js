@@ -98,10 +98,7 @@ async function authenticate(url, body) {
     try {
 
         showLoading("Entrando...");
-        const button = event.submitter;
-
-        button.disabled = true;
-        button.textContent = "Entrando...";
+ 
 
         const result = await request(url, { method: "POST", body });
         state.token = result.token;
@@ -115,8 +112,6 @@ async function authenticate(url, body) {
     }
 
     finally {
-        button.disabled = false;
-        button.textContent = "Entrar";
         hideLoading();
     }
 }
