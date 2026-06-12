@@ -96,6 +96,13 @@ function bindResetButtons() {
 
 async function authenticate(url, body) {
     try {
+
+        showLoading("Entrando...");
+        const button = event.submitter;
+
+        button.disabled = true;
+        button.textContent = "Entrando...";
+
         const result = await request(url, { method: "POST", body });
         state.token = result.token;
         state.user = { name: result.name, email: result.email };
@@ -105,6 +112,12 @@ async function authenticate(url, body) {
         renderShell();
     } catch (error) {
         setMessage("authMessage", error.message);
+    }
+
+    finally {
+        button.disabled = false;
+        button.textContent = "Entrar";
+        hideLoading();
     }
 }
 
@@ -145,6 +158,9 @@ async function loadAll() {
 
 async function saveRecord(baseUrl, data, form) {
     try {
+
+        showLoading("Salvando...");
+
         removeEmptyStrings(data);
         const id = data.id;
         delete data.id;
@@ -158,10 +174,15 @@ async function saveRecord(baseUrl, data, form) {
     } catch (error) {
         setMessage("appMessage", error.message);
     }
+
+    finally {
+        hideLoading();
+    }
 }
 
 async function deleteRecord(baseUrl, id) {
     try {
+        showLoading("Removendo...");
         await request(`${baseUrl}/${id}`, { method: "DELETE" });
         setMessage("appMessage", "Registro removido.");
         await loadAll();
@@ -384,3 +405,4 @@ function escapeHtml(value) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
+
