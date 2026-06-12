@@ -27,6 +27,26 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+
+function showDashboardSkeleton() {
+
+    document.getElementById("dashboardSkeleton")
+        .classList.remove("hidden");
+
+    document.getElementById("appView")
+        .classList.add("hidden");
+}
+
+function hideDashboardSkeleton() {
+
+    document.getElementById("dashboardSkeleton")
+        .classList.add("hidden");
+
+    document.getElementById("appView")
+        .classList.remove("hidden");
+}
+
+
 function showLoading(message = "Carregando...") {
 
     const overlay = document.getElementById("loadingOverlay");
@@ -35,6 +55,8 @@ function showLoading(message = "Carregando...") {
 
     overlay.querySelector("p").textContent = message;
     overlay.classList.remove("hidden");
+
+
 
 }
 
@@ -47,6 +69,7 @@ function hideLoading() {
     overlay.classList.add("hidden");
 
 }
+
 
 
 
@@ -426,3 +449,23 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    showDashboardSkeleton();
+
+    try {
+
+        await renderShell();
+
+    } catch(error) {
+
+        console.error(error);
+
+    } finally {
+
+        hideDashboardSkeleton();
+
+    }
+
+});
