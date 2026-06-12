@@ -26,6 +26,31 @@ document.addEventListener("DOMContentLoaded", () => {
     renderShell();
 });
 
+
+function showLoading(message = "Carregando...") {
+
+    const overlay = document.getElementById("loadingOverlay");
+
+    if (!overlay) return;
+
+    overlay.querySelector("p").textContent = message;
+    overlay.classList.remove("hidden");
+
+}
+
+function hideLoading() {
+
+    const overlay = document.getElementById("loadingOverlay");
+    
+    if (!overlay) return;
+
+    overlay.classList.add("hidden");
+
+}
+
+
+
+
 function bindAuth() {
     document.getElementById("loginForm").addEventListener("submit", async event => {
         event.preventDefault();
