@@ -1,4 +1,4 @@
-const API_BASE_URL = localStorage.getItem("zenithApiUrl") || "http://localhost:8080";
+const API_BASE_URL = localStorage.getItem("zenithApiUrl") || "https://zenithcrm-deploy.onrender.com";
 
 const state = {
     token: localStorage.getItem("zenithToken"),
