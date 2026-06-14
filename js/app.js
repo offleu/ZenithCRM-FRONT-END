@@ -25,8 +25,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     bindResetButtons();
     setActiveNavigation();
 
-    if (currentPage() === "dashboard" && state.token) {
-        showDashboardSkeleton();
+    if (isAppPage() && state.token) {
+        showPageSkeleton();
     }
 
     try {
@@ -35,12 +35,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.error(error);
         setMessage("appMessage", error.message);
     } finally {
-        hideDashboardSkeleton();
+        hidePageSkeleton();
     }
 });
 
 function currentPage() {
     return document.body.dataset.page || "login";
+}
+
+function isAppPage() {
+    return currentPage() !== "login";
 }
 
 function byId(id) {
@@ -57,16 +61,71 @@ function onSubmit(id, handler) {
     });
 }
 
-function showDashboardSkeleton() {
-    byId("dashboardSkeleton")?.classList.remove("hidden");
-    byId("appView")?.classList.add("hidden");
+function showPageSkeleton() {
+    const appView = byId("appView");
+    const authView = byId("authView");
+
+    if (!appView) return;
+
+    authView?.classList.add("hidden");
+    appView.classList.remove("hidden");
+    appView.classList.add("is-loading");
+    ensurePageSkeleton();
 }
 
-function hideDashboardSkeleton() {
-    byId("dashboardSkeleton")?.classList.add("hidden");
-    if (state.token) {
-        byId("appView")?.classList.remove("hidden");
+function hidePageSkeleton() {
+    byId("appView")?.classList.remove("is-loading");
+}
+
+function ensurePageSkeleton() {
+    if (byId("pageSkeleton")) return;
+
+    const workspace = document.querySelector(".workspace");
+    if (!workspace) return;
+
+    const skeleton = document.createElement("section");
+    skeleton.id = "pageSkeleton";
+    skeleton.className = `page-skeleton page-skeleton-${currentPage()}`;
+    skeleton.innerHTML = pageSkeletonMarkup(currentPage());
+    workspace.appendChild(skeleton);
+}
+
+function pageSkeletonMarkup(page) {
+    if (page === "dashboard") {
+        return `
+            <div class="skeleton-grid">
+                ${skeletonCards(4)}
+            </div>
+            <div class="skeleton-split">
+                <div class="skeleton-block skeleton-block-large"></div>
+                <div class="skeleton-block skeleton-block-large"></div>
+            </div>
+        `;
     }
+
+    if (page === "documents") {
+        return `
+            <div class="skeleton-form skeleton-form-documents">
+                ${skeletonLines(4)}
+            </div>
+            <div class="skeleton-block skeleton-block-table"></div>
+        `;
+    }
+
+    return `
+        <div class="skeleton-form">
+            ${skeletonLines(8)}
+        </div>
+        <div class="skeleton-block skeleton-block-table"></div>
+    `;
+}
+
+function skeletonCards(total) {
+    return Array.from({ length: total }, () => '<div class="skeleton skeleton-card-inline"></div>').join("");
+}
+
+function skeletonLines(total) {
+    return Array.from({ length: total }, () => '<div class="skeleton skeleton-line"></div>').join("");
 }
 
 function showLoading(message = "Carregando...") {
