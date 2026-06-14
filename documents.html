@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zenith | Documentos</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="shortcut icon" href="/src/img/zenith-logo2.ico">
+</head>
+<body data-page="documents">
+<main id="authView" class="auth-shell hidden">
+    <section class="auth-panel">
+        <div><img src="/src/img/zenith-logo.png" alt="Logo do Zenith" class="logo"></div>
+        <form id="loginForm" class="form-grid">
+            <label>E-mail<input name="email" type="email" required autocomplete="email"></label>
+            <label>Senha<input name="password" type="password" required autocomplete="current-password"></label>
+            <button type="submit">Entrar</button>
+        </form>
+        <details>
+            <summary>Criar primeiro acesso</summary>
+            <form id="registerForm" class="form-grid">
+                <label>Nome<input name="name" required></label>
+                <label>E-mail<input name="email" type="email" required></label>
+                <label>Senha<input name="password" type="password" minlength="6" required></label>
+                <button type="submit">Cadastrar</button>
+            </form>
+        </details>
+        <p id="authMessage" class="message"></p>
+    </section>
+</main>
+
+<main id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+        <div class="brand"><strong>Zenith</strong><span id="userLabel">Psicologia</span></div>
+        <nav>
+            <a class="nav-button" data-view="dashboard" href="/dashboard.html">Painel</a>
+            <a class="nav-button" data-view="patients" href="/patients.html">Pacientes</a>
+            <a class="nav-button" data-view="appointments" href="/appointments.html">Agenda</a>
+            <a class="nav-button" data-view="finance" href="/finance.html">Financeiro</a>
+            <a class="nav-button active" data-view="documents" href="/documents.html">Documentos</a>
+        </nav>
+        <button id="logoutButton" class="secondary">Sair</button>
+    </aside>
+    <section class="workspace">
+        <header class="topbar">
+            <div><h2 id="viewTitle">Documentos</h2></div>
+            <p id="appMessage" class="message"></p>
+        </header>
+        <section id="documents" class="view active">
+            <form id="documentForm" class="editor document-editor">
+                <input type="hidden" name="id">
+                <label>Paciente<select name="patientId" required></select></label>
+                <label>Título<input name="title" required></label>
+                <label>Tipo<select name="type"><option>REPORT</option><option>ANAMNESIS</option><option>CERTIFICATE</option><option>EVOLUTION</option><option>OTHER</option></select></label>
+                <label class="wide">Conteúdo<textarea name="content" rows="10" required></textarea></label>
+                <button type="submit">Salvar documento</button>
+                <button type="button" class="secondary" data-reset="documentForm">Limpar</button>
+            </form>
+            <table>
+                <thead><tr><th>Paciente</th><th>Título</th><th>Tipo</th><th>Atualizado</th><th>Ações</th></tr></thead>
+                <tbody id="documentsTable"></tbody>
+            </table>
+        </section>
+    </section>
+</main>
+
+<div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <p>Carregando...</p>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

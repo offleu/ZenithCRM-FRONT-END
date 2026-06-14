@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zenith | Painel</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="shortcut icon" href="/src/img/zenith-logo2.ico">
+</head>
+<body data-page="dashboard">
+<main id="authView" class="auth-shell hidden">
+    <section class="auth-panel">
+        <div>
+            <img src="/src/img/zenith-logo.png" alt="Logo do Zenith" class="logo">
+        </div>
+        <form id="loginForm" class="form-grid">
+            <label>E-mail
+                <input name="email" type="email" required autocomplete="email">
+            </label>
+            <label>Senha
+                <input name="password" type="password" required autocomplete="current-password">
+            </label>
+            <button type="submit">Entrar</button>
+        </form>
+        <details>
+            <summary>Criar primeiro acesso</summary>
+            <form id="registerForm" class="form-grid">
+                <label>Nome
+                    <input name="name" required>
+                </label>
+                <label>E-mail
+                    <input name="email" type="email" required>
+                </label>
+                <label>Senha
+                    <input name="password" type="password" minlength="6" required>
+                </label>
+                <button type="submit">Cadastrar</button>
+            </form>
+        </details>
+        <p id="authMessage" class="message"></p>
+    </section>
+</main>
+
+<main id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+        <div class="brand">
+            <strong>Zenith</strong>
+            <span id="userLabel">Psicologia</span>
+        </div>
+        <nav>
+            <a class="nav-button active" data-view="dashboard" href="/dashboard.html">Painel</a>
+            <a class="nav-button" data-view="patients" href="/patients.html">Pacientes</a>
+            <a class="nav-button" data-view="appointments" href="/appointments.html">Agenda</a>
+            <a class="nav-button" data-view="finance" href="/finance.html">Financeiro</a>
+            <a class="nav-button" data-view="documents" href="/documents.html">Documentos</a>
+        </nav>
+        <button id="logoutButton" class="secondary">Sair</button>
+    </aside>
+
+    <section class="workspace">
+        <header class="topbar">
+            <div>
+                <h2 id="viewTitle">Painel</h2>
+            </div>
+            <p id="appMessage" class="message"></p>
+        </header>
+
+        <section id="dashboard" class="view active">
+            <div class="metrics">
+                <article>
+                    <span>Pacientes</span>
+                    <strong id="metricPatients">0</strong>
+                </article>
+                <article>
+                    <span>Agenda</span>
+                    <strong id="metricAppointments">0</strong>
+                </article>
+                <article>
+                    <span>Recebido</span>
+                    <strong id="metricReceived">R$ 0,00</strong>
+                </article>
+                <article>
+                    <span>Pendente</span>
+                    <strong id="metricPending">R$ 0,00</strong>
+                </article>
+            </div>
+            <div class="split">
+                <section>
+                    <h3>Próximos atendimentos</h3>
+                    <table>
+                        <thead><tr><th>Paciente</th><th>Data</th><th>Status</th></tr></thead>
+                        <tbody id="dashboardAppointments"></tbody>
+                    </table>
+                </section>
+                <section>
+                    <h3>Financeiro do período</h3>
+                    <table>
+                        <thead><tr><th>Status</th><th>Quantidade</th><th>Total</th></tr></thead>
+                        <tbody id="dashboardFinance"></tbody>
+                    </table>
+                </section>
+            </div>
+        </section>
+    </section>
+</main>
+
+<div id="dashboardSkeleton" class="hidden">
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton-table"></div>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <p>Carregando...</p>
+</div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>

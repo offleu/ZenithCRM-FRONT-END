@@ -1,4 +1,5 @@
 const API_BASE_URL = localStorage.getItem("zenithApiUrl") || "https://zenithcrm-deploy.onrender.com";
+const APP_HOME = "/dashboard.html";
 
 const state = {
     token: localStorage.getItem("zenithToken"),
@@ -18,118 +19,108 @@ const views = {
     documents: "Documentos"
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     bindAuth();
-    bindNavigation();
     bindForms();
     bindResetButtons();
-    renderShell();
+    setActiveNavigation();
+
+    if (currentPage() === "dashboard" && state.token) {
+        showDashboardSkeleton();
+    }
+
+    try {
+        await renderShell();
+    } catch (error) {
+        console.error(error);
+        setMessage("appMessage", error.message);
+    } finally {
+        hideDashboardSkeleton();
+    }
 });
 
+function currentPage() {
+    return document.body.dataset.page || "login";
+}
 
+function byId(id) {
+    return document.getElementById(id);
+}
+
+function onSubmit(id, handler) {
+    const form = byId(id);
+    if (!form) return;
+
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+        await handler(event);
+    });
+}
 
 function showDashboardSkeleton() {
-
-    document.getElementById("dashboardSkeleton")
-        .classList.remove("hidden");
-
-    document.getElementById("appView")
-        .classList.add("hidden");
+    byId("dashboardSkeleton")?.classList.remove("hidden");
+    byId("appView")?.classList.add("hidden");
 }
 
 function hideDashboardSkeleton() {
-
-    document.getElementById("dashboardSkeleton")
-        .classList.add("hidden");
-
-    document.getElementById("appView")
-        .classList.remove("hidden");
+    byId("dashboardSkeleton")?.classList.add("hidden");
+    if (state.token) {
+        byId("appView")?.classList.remove("hidden");
+    }
 }
 
-
 function showLoading(message = "Carregando...") {
-
-    const overlay = document.getElementById("loadingOverlay");
-
+    const overlay = byId("loadingOverlay");
     if (!overlay) return;
 
-    overlay.querySelector("p").textContent = message;
+    const label = overlay.querySelector("p");
+    if (label) {
+        label.textContent = message;
+    }
     overlay.classList.remove("hidden");
-
-
-
 }
 
 function hideLoading() {
-
-    const overlay = document.getElementById("loadingOverlay");
-    
-    if (!overlay) return;
-
-    overlay.classList.add("hidden");
-
+    byId("loadingOverlay")?.classList.add("hidden");
 }
 
-
-
-
-
 function bindAuth() {
-    document.getElementById("loginForm").addEventListener("submit", async event => {
-        event.preventDefault();
+    onSubmit("loginForm", async event => {
         await authenticate("/api/auth/login", formData(event.target));
     });
 
-    document.getElementById("registerForm").addEventListener("submit", async event => {
-        event.preventDefault();
+    onSubmit("registerForm", async event => {
         await authenticate("/api/auth/register", formData(event.target));
     });
 
-    document.getElementById("logoutButton").addEventListener("click", () => {
+    byId("logoutButton")?.addEventListener("click", () => {
         localStorage.removeItem("zenithToken");
         localStorage.removeItem("zenithUser");
         state.token = null;
         state.user = null;
-        renderShell();
-    });
-}
-
-function bindNavigation() {
-    document.querySelectorAll(".nav-button").forEach(button => {
-        button.addEventListener("click", () => {
-            document.querySelectorAll(".nav-button").forEach(item => item.classList.remove("active"));
-            document.querySelectorAll(".view").forEach(item => item.classList.remove("active"));
-            button.classList.add("active");
-            document.getElementById(button.dataset.view).classList.add("active");
-            document.getElementById("viewTitle").textContent = views[button.dataset.view];
-        });
+        window.location.href = "/";
     });
 }
 
 function bindForms() {
-    document.getElementById("patientForm").addEventListener("submit", async event => {
-        event.preventDefault();
-        const data = formData(event.target);
-        await saveRecord("/api/patients", data, event.target);
+    onSubmit("patientForm", async event => {
+        await saveRecord("/api/patients", formData(event.target), event.target);
     });
 
-    document.getElementById("appointmentForm").addEventListener("submit", async event => {
-        event.preventDefault();
+    onSubmit("appointmentForm", async event => {
         const data = formData(event.target);
         data.patientId = Number(data.patientId);
         await saveRecord("/api/appointments", data, event.target);
     });
 
-    document.getElementById("paymentForm").addEventListener("submit", async event => {
-        event.preventDefault();
+    onSubmit("paymentForm", async event => {
         const data = formData(event.target);
         data.patientId = Number(data.patientId);
         data.amount = Number(data.amount);
         await saveRecord("/api/payments", data, event.target);
     });
 
-    document.getElementById("documentForm").addEventListener("submit", async event => {
-        event.preventDefault();
+    onSubmit("documentForm", async event => {
         const data = formData(event.target);
         data.patientId = Number(data.patientId);
         await saveRecord("/api/documents", data, event.target);
@@ -138,39 +129,64 @@ function bindForms() {
 
 function bindResetButtons() {
     document.querySelectorAll("[data-reset]").forEach(button => {
-        button.addEventListener("click", () => clearForm(document.getElementById(button.dataset.reset)));
+        button.addEventListener("click", () => clearForm(byId(button.dataset.reset)));
     });
+}
+
+function setActiveNavigation() {
+    const page = currentPage();
+    document.querySelectorAll(".nav-button").forEach(link => {
+        link.classList.toggle("active", link.dataset.view === page);
+    });
+
+    const title = byId("viewTitle");
+    if (title && views[page]) {
+        title.textContent = views[page];
+    }
 }
 
 async function authenticate(url, body) {
     try {
-
         showLoading("Entrando...");
- 
-
         const result = await request(url, { method: "POST", body });
         state.token = result.token;
         state.user = { name: result.name, email: result.email };
         localStorage.setItem("zenithToken", state.token);
         localStorage.setItem("zenithUser", JSON.stringify(state.user));
         setMessage("authMessage", "");
-        renderShell();
+
+        if (currentPage() === "login") {
+            window.location.href = APP_HOME;
+            return;
+        }
+
+        await renderShell();
     } catch (error) {
         setMessage("authMessage", error.message);
-    }
-
-    finally {
+    } finally {
         hideLoading();
     }
 }
 
 async function renderShell() {
-    document.getElementById("authView").classList.toggle("hidden", Boolean(state.token));
-    document.getElementById("appView").classList.toggle("hidden", !state.token);
-    if (!state.token) {
+    const hasToken = Boolean(state.token);
+    byId("authView")?.classList.toggle("hidden", hasToken);
+    byId("appView")?.classList.toggle("hidden", !hasToken);
+
+    if (!hasToken) {
         return;
     }
-    document.getElementById("userLabel").textContent = state.user?.name || "Psicologia";
+
+    if (currentPage() === "login") {
+        window.location.href = APP_HOME;
+        return;
+    }
+
+    const userLabel = byId("userLabel");
+    if (userLabel) {
+        userLabel.textContent = state.user?.name || "Psicologia";
+    }
+
     await loadAll();
 }
 
@@ -183,11 +199,12 @@ async function loadAll() {
             request("/api/payments/summary"),
             request("/api/documents")
         ]);
-        state.patients = patients;
-        state.appointments = appointments;
-        state.payments = payments;
-        state.financeSummary = summary;
-        state.documents = documents;
+        state.patients = patients || [];
+        state.appointments = appointments || [];
+        state.payments = payments || [];
+        state.financeSummary = summary || null;
+        state.documents = documents || [];
+
         renderPatients();
         renderPatientOptions();
         renderAppointments();
@@ -201,9 +218,7 @@ async function loadAll() {
 
 async function saveRecord(baseUrl, data, form) {
     try {
-
         showLoading("Salvando...");
-
         removeEmptyStrings(data);
         const id = data.id;
         delete data.id;
@@ -216,9 +231,7 @@ async function saveRecord(baseUrl, data, form) {
         await loadAll();
     } catch (error) {
         setMessage("appMessage", error.message);
-    }
-
-    finally {
+    } finally {
         hideLoading();
     }
 }
@@ -231,10 +244,15 @@ async function deleteRecord(baseUrl, id) {
         await loadAll();
     } catch (error) {
         setMessage("appMessage", error.message);
+    } finally {
+        hideLoading();
     }
 }
 
 function renderPatients() {
+    const table = byId("patientsTable");
+    if (!table) return;
+
     const rows = state.patients.map(patient => `
         <tr>
             <td>${escapeHtml(patient.fullName)}</td>
@@ -246,7 +264,7 @@ function renderPatients() {
             </td>
         </tr>
     `).join("");
-    document.getElementById("patientsTable").innerHTML = rows || emptyRow(4);
+    table.innerHTML = rows || emptyRow(4);
 }
 
 function renderPatientOptions() {
@@ -259,22 +277,28 @@ function renderPatientOptions() {
 }
 
 function renderAppointments() {
+    const table = byId("appointmentsTable");
+    if (!table) return;
+
     const rows = state.appointments.map(item => `
         <tr>
             <td>${escapeHtml(item.patientName)}</td>
             <td>${formatDateTime(item.startsAt)}</td>
             <td class="status-${item.status}">${translateStatus(item.status)}</td>
-            <td><a href="${item.googleCalendarUrl}" target="_blank" rel="noreferrer">Abrir</a></td>
+            <td>${item.googleCalendarUrl ? `<a href="${item.googleCalendarUrl}" target="_blank" rel="noreferrer">Abrir</a>` : ""}</td>
             <td class="actions">
                 <button type="button" onclick="editAppointment(${item.id})">Editar</button>
                 <button type="button" class="danger" onclick="deleteRecord('/api/appointments', ${item.id})">Excluir</button>
             </td>
         </tr>
     `).join("");
-    document.getElementById("appointmentsTable").innerHTML = rows || emptyRow(5);
+    table.innerHTML = rows || emptyRow(5);
 }
 
 function renderPayments() {
+    const table = byId("paymentsTable");
+    if (!table) return;
+
     const rows = state.payments.map(payment => `
         <tr>
             <td>${escapeHtml(payment.patientName)}</td>
@@ -287,10 +311,13 @@ function renderPayments() {
             </td>
         </tr>
     `).join("");
-    document.getElementById("paymentsTable").innerHTML = rows || emptyRow(5);
+    table.innerHTML = rows || emptyRow(5);
 }
 
 function renderDocuments() {
+    const table = byId("documentsTable");
+    if (!table) return;
+
     const rows = state.documents.map(document => `
         <tr>
             <td>${escapeHtml(document.patientName)}</td>
@@ -303,20 +330,23 @@ function renderDocuments() {
             </td>
         </tr>
     `).join("");
-    document.getElementById("documentsTable").innerHTML = rows || emptyRow(5);
+    table.innerHTML = rows || emptyRow(5);
 }
 
 function renderDashboard() {
-    document.getElementById("metricPatients").textContent = state.patients.length;
-    document.getElementById("metricAppointments").textContent = state.appointments.length;
-    document.getElementById("metricReceived").textContent = currency(state.financeSummary?.received || 0);
-    document.getElementById("metricPending").textContent = currency(state.financeSummary?.pending || 0);
+    const metricPatients = byId("metricPatients");
+    if (!metricPatients) return;
 
-    document.getElementById("dashboardAppointments").innerHTML = state.appointments.slice(0, 6).map(item => `
+    metricPatients.textContent = state.patients.length;
+    byId("metricAppointments").textContent = state.appointments.length;
+    byId("metricReceived").textContent = currency(state.financeSummary?.received || 0);
+    byId("metricPending").textContent = currency(state.financeSummary?.pending || 0);
+
+    byId("dashboardAppointments").innerHTML = state.appointments.slice(0, 6).map(item => `
         <tr><td>${escapeHtml(item.patientName)}</td><td>${formatDateTime(item.startsAt)}</td><td>${translateStatus(item.status)}</td></tr>
     `).join("") || emptyRow(3);
 
-    document.getElementById("dashboardFinance").innerHTML = `
+    byId("dashboardFinance").innerHTML = `
         <tr><td>Pago</td><td>${state.financeSummary?.paidCount || 0}</td><td>${currency(state.financeSummary?.received || 0)}</td></tr>
         <tr><td>Pendente</td><td>${state.financeSummary?.pendingCount || 0}</td><td>${currency(state.financeSummary?.pending || 0)}</td></tr>
         <tr><td>Atrasado</td><td>${state.financeSummary?.overdueCount || 0}</td><td>${currency(state.financeSummary?.overdue || 0)}</td></tr>
@@ -329,6 +359,8 @@ function editPatient(id) {
 
 function editAppointment(id) {
     const item = state.appointments.find(record => record.id === id);
+    if (!item) return;
+
     fillForm("appointmentForm", {
         ...item,
         startsAt: toInputDateTime(item.startsAt),
@@ -345,8 +377,10 @@ function editDocument(id) {
 }
 
 function fillForm(formId, data) {
-    const form = document.getElementById(formId);
-    Object.entries(data || {}).forEach(([key, value]) => {
+    const form = byId(formId);
+    if (!form || !data) return;
+
+    Object.entries(data).forEach(([key, value]) => {
         const field = form.elements[key];
         if (field) {
             field.value = value ?? "";
@@ -355,6 +389,8 @@ function fillForm(formId, data) {
 }
 
 function clearForm(form) {
+    if (!form) return;
+
     form.reset();
     if (form.elements.id) {
         form.elements.id.value = "";
@@ -366,18 +402,22 @@ async function request(url, options = {}) {
     if (state.token) {
         headers.Authorization = `Bearer ${state.token}`;
     }
+
     const response = await fetch(`${API_BASE_URL}${url}`, {
         ...options,
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined
     });
+
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Nao foi possivel concluir a operacao.");
+        throw new Error(error.message || "Não foi possível concluir a operação.");
     }
+
     if (response.status === 204) {
         return null;
     }
+
     const text = await response.text();
     return text ? JSON.parse(text) : null;
 }
@@ -395,7 +435,10 @@ function removeEmptyStrings(data) {
 }
 
 function setMessage(id, message) {
-    document.getElementById(id).textContent = message;
+    const element = byId(id);
+    if (element) {
+        element.textContent = message;
+    }
 }
 
 function emptyRow(columns) {
@@ -422,20 +465,27 @@ function translateStatus(status) {
     return {
         SCHEDULED: "Agendado",
         CONFIRMED: "Confirmado",
-        COMPLETED: "Concluido",
+        COMPLETED: "Concluído",
         CANCELED: "Cancelado",
         PENDING: "Pendente",
         PAID: "Pago",
-        OVERDUE: "Atrasado"
+        OVERDUE: "Atrasado",
+        AGENDADO: "Agendado",
+        CONFIRMADO: "Confirmado",
+        FINALIZADO: "Finalizado",
+        CANCELADO: "Cancelado",
+        PENDENTE: "Pendente",
+        PAGO: "Pago",
+        ATRASADO: "Atrasado"
     }[status] || status;
 }
 
 function translateDocumentType(type) {
     return {
-        REPORT: "Relatorio",
+        REPORT: "Relatório",
         ANAMNESIS: "Anamnese",
         CERTIFICATE: "Atestado",
-        EVOLUTION: "Evolucao",
+        EVOLUTION: "Evolução",
         OTHER: "Outro"
     }[type] || type;
 }
@@ -448,24 +498,3 @@ function escapeHtml(value) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
-
-
-document.addEventListener("DOMContentLoaded", async () => {
-
-    showDashboardSkeleton();
-
-    try {
-
-        await renderShell();
-
-    } catch(error) {
-
-        console.error(error);
-
-    } finally {
-
-        hideDashboardSkeleton();
-
-    }
-
-});
