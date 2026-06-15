@@ -430,3 +430,10 @@ td.actions button {
         background-position: -200% 0;
     }
 }
+
+
+.logo-small {
+    width: 200px;
+    padding: 0 0 20px;
+
+}
