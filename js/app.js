@@ -1,5 +1,6 @@
+const DEV_MODE = true;
+
 const API_BASE_URL = localStorage.getItem("zenithApiUrl") || "https://zenithcrm-deploy.onrender.com";
-const APP_HOME = "/dashboard.html";
 
 const state = {
     token: localStorage.getItem("zenithToken"),
@@ -11,6 +12,69 @@ const state = {
     financeSummary: null
 };
 
+if (DEV_MODE) {
+
+    state.token = "token-dev";
+
+    state.user = {
+        name: "Leonardo"
+    };
+
+    state.patients = [
+        {
+            id: 1,
+            fullName: "Maria Silva",
+            phone: "(14) 99999-1111",
+            email: "maria@email.com"
+        },
+        {
+            id: 2,
+            fullName: "João Santos",
+            phone: "(14) 99999-2222",
+            email: "joao@email.com"
+        }
+    ];
+
+    state.appointments = [
+        {
+            id: 1,
+            patientName: "Maria Silva",
+            startsAt: "2026-06-15T09:00:00",
+            status: "CONFIRMED",
+            googleCalendarUrl: "#"
+        }
+    ];
+
+    state.payments = [
+        {
+            id: 1,
+            patientName: "Maria Silva",
+            amount: 150,
+            dueDate: "2026-06-20",
+            status: "PAID"
+        }
+    ];
+
+    state.documents = [
+        {
+            id: 1,
+            patientName: "Maria Silva",
+            title: "Relatório Inicial",
+            type: "REPORT",
+            updatedAt: "2026-06-14T10:00:00"
+        }
+    ];
+
+    state.financeSummary = {
+        received: 150,
+        pending: 200,
+        overdue: 50,
+        paidCount: 1,
+        pendingCount: 1,
+        overdueCount: 1
+    };
+}
+
 const views = {
     dashboard: "Painel",
     patients: "Pacientes",
@@ -19,167 +83,118 @@ const views = {
     documents: "Documentos"
 };
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
     bindAuth();
+    bindNavigation();
     bindForms();
     bindResetButtons();
-    setActiveNavigation();
-
-    if (isAppPage() && state.token) {
-        showPageSkeleton();
-    }
-
-    try {
-        await renderShell();
-    } catch (error) {
-        console.error(error);
-        setMessage("appMessage", error.message);
-    } finally {
-        hidePageSkeleton();
-    }
+    renderShell();
 });
 
-function currentPage() {
-    return document.body.dataset.page || "login";
+
+
+function showDashboardSkeleton() {
+
+    document.getElementById("dashboardSkeleton")
+        .classList.remove("hidden");
+
+    document.getElementById("appView")
+        .classList.add("hidden");
 }
 
-function isAppPage() {
-    return currentPage() !== "login";
+function hideDashboardSkeleton() {
+
+    document.getElementById("dashboardSkeleton")
+        .classList.add("hidden");
+
+    document.getElementById("appView")
+        .classList.remove("hidden");
 }
 
-function byId(id) {
-    return document.getElementById(id);
-}
-
-function onSubmit(id, handler) {
-    const form = byId(id);
-    if (!form) return;
-
-    form.addEventListener("submit", async event => {
-        event.preventDefault();
-        await handler(event);
-    });
-}
-
-function showPageSkeleton() {
-    const appView = byId("appView");
-    const authView = byId("authView");
-
-    if (!appView) return;
-
-    authView?.classList.add("hidden");
-    appView.classList.remove("hidden");
-    appView.classList.add("is-loading");
-    ensurePageSkeleton();
-}
-
-function hidePageSkeleton() {
-    byId("appView")?.classList.remove("is-loading");
-}
-
-function ensurePageSkeleton() {
-    if (byId("pageSkeleton")) return;
-
-    const workspace = document.querySelector(".workspace");
-    if (!workspace) return;
-
-    const skeleton = document.createElement("section");
-    skeleton.id = "pageSkeleton";
-    skeleton.className = `page-skeleton page-skeleton-${currentPage()}`;
-    skeleton.innerHTML = pageSkeletonMarkup(currentPage());
-    workspace.appendChild(skeleton);
-}
-
-function pageSkeletonMarkup(page) {
-    if (page === "dashboard") {
-        return `
-            <div class="skeleton-grid">
-                ${skeletonCards(4)}
-            </div>
-            <div class="skeleton-split">
-                <div class="skeleton-block skeleton-block-large"></div>
-                <div class="skeleton-block skeleton-block-large"></div>
-            </div>
-        `;
-    }
-
-    if (page === "documents") {
-        return `
-            <div class="skeleton-form skeleton-form-documents">
-                ${skeletonLines(4)}
-            </div>
-            <div class="skeleton-block skeleton-block-table"></div>
-        `;
-    }
-
-    return `
-        <div class="skeleton-form">
-            ${skeletonLines(8)}
-        </div>
-        <div class="skeleton-block skeleton-block-table"></div>
-    `;
-}
-
-function skeletonCards(total) {
-    return Array.from({ length: total }, () => '<div class="skeleton skeleton-card-inline"></div>').join("");
-}
-
-function skeletonLines(total) {
-    return Array.from({ length: total }, () => '<div class="skeleton skeleton-line"></div>').join("");
-}
 
 function showLoading(message = "Carregando...") {
-    const overlay = byId("loadingOverlay");
+
+    const overlay = document.getElementById("loadingOverlay");
+
     if (!overlay) return;
 
-    const label = overlay.querySelector("p");
-    if (label) {
-        label.textContent = message;
-    }
+    overlay.querySelector("p").textContent = message;
     overlay.classList.remove("hidden");
+
+
+
 }
 
 function hideLoading() {
-    byId("loadingOverlay")?.classList.add("hidden");
+
+    const overlay = document.getElementById("loadingOverlay");
+    
+    if (!overlay) return;
+
+    overlay.classList.add("hidden");
+
 }
 
+
+
+
+
 function bindAuth() {
-    onSubmit("loginForm", async event => {
+    document.getElementById("loginForm").addEventListener("submit", async event => {
+        event.preventDefault();
         await authenticate("/api/auth/login", formData(event.target));
     });
 
-    onSubmit("registerForm", async event => {
+    document.getElementById("registerForm").addEventListener("submit", async event => {
+        event.preventDefault();
         await authenticate("/api/auth/register", formData(event.target));
     });
 
-    byId("logoutButton")?.addEventListener("click", () => {
+    document.getElementById("logoutButton").addEventListener("click", () => {
         localStorage.removeItem("zenithToken");
         localStorage.removeItem("zenithUser");
         state.token = null;
         state.user = null;
-        window.location.href = "/";
+        renderShell();
+    });
+}
+
+function bindNavigation() {
+    document.querySelectorAll(".nav-button").forEach(button => {
+        button.addEventListener("click", () => {
+            document.querySelectorAll(".nav-button").forEach(item => item.classList.remove("active"));
+            document.querySelectorAll(".view").forEach(item => item.classList.remove("active"));
+            button.classList.add("active");
+            document.getElementById(button.dataset.view).classList.add("active");
+            document.getElementById("viewTitle").textContent = views[button.dataset.view];
+        });
     });
 }
 
 function bindForms() {
-    onSubmit("patientForm", async event => {
-        await saveRecord("/api/patients", formData(event.target), event.target);
+    document.getElementById("patientForm").addEventListener("submit", async event => {
+        event.preventDefault();
+        const data = formData(event.target);
+        await saveRecord("/api/patients", data, event.target);
     });
 
-    onSubmit("appointmentForm", async event => {
+    document.getElementById("appointmentForm").addEventListener("submit", async event => {
+        event.preventDefault();
         const data = formData(event.target);
         data.patientId = Number(data.patientId);
         await saveRecord("/api/appointments", data, event.target);
     });
 
-    onSubmit("paymentForm", async event => {
+    document.getElementById("paymentForm").addEventListener("submit", async event => {
+        event.preventDefault();
         const data = formData(event.target);
         data.patientId = Number(data.patientId);
         data.amount = Number(data.amount);
         await saveRecord("/api/payments", data, event.target);
     });
 
-    onSubmit("documentForm", async event => {
+    document.getElementById("documentForm").addEventListener("submit", async event => {
+        event.preventDefault();
         const data = formData(event.target);
         data.patientId = Number(data.patientId);
         await saveRecord("/api/documents", data, event.target);
@@ -188,80 +203,97 @@ function bindForms() {
 
 function bindResetButtons() {
     document.querySelectorAll("[data-reset]").forEach(button => {
-        button.addEventListener("click", () => clearForm(byId(button.dataset.reset)));
+        button.addEventListener("click", () => clearForm(document.getElementById(button.dataset.reset)));
     });
-}
-
-function setActiveNavigation() {
-    const page = currentPage();
-    document.querySelectorAll(".nav-button").forEach(link => {
-        link.classList.toggle("active", link.dataset.view === page);
-    });
-
-    const title = byId("viewTitle");
-    if (title && views[page]) {
-        title.textContent = views[page];
-    }
 }
 
 async function authenticate(url, body) {
     try {
+
         showLoading("Entrando...");
+ 
+
         const result = await request(url, { method: "POST", body });
         state.token = result.token;
         state.user = { name: result.name, email: result.email };
         localStorage.setItem("zenithToken", state.token);
         localStorage.setItem("zenithUser", JSON.stringify(state.user));
         setMessage("authMessage", "");
-
-        if (currentPage() === "login") {
-            window.location.href = APP_HOME;
-            return;
-        }
-
-        await renderShell();
+        renderShell();
     } catch (error) {
         setMessage("authMessage", error.message);
-    } finally {
+    }
+
+    finally {
         hideLoading();
     }
 }
 
 async function renderShell() {
-    const hasToken = Boolean(state.token);
-    byId("authView")?.classList.toggle("hidden", hasToken);
-    byId("appView")?.classList.toggle("hidden", !hasToken);
 
-    if (!hasToken) {
+    if (DEV_MODE) {
+
+        document.getElementById("authView")?.classList.add("hidden");
+        document.getElementById("appView")?.classList.remove("hidden");
+
+        document.getElementById("userLabel").textContent =
+            state.user?.name || "Leonardo";
+
+        renderPatients();
+        renderPatientOptions();
+        renderAppointments();
+        renderPayments();
+        renderDocuments();
+        renderDashboard();
+
         return;
     }
 
-    if (currentPage() === "login") {
-        window.location.href = APP_HOME;
+    document.getElementById("authView")
+        .classList.toggle("hidden", Boolean(state.token));
+
+    document.getElementById("appView")
+        .classList.toggle("hidden", !state.token);
+
+    if (!state.token) {
         return;
     }
 
-    const userLabel = byId("userLabel");
-    if (userLabel) {
-        userLabel.textContent = state.user?.name || "Psicologia";
-    }
+    document.getElementById("userLabel").textContent =
+        state.user?.name || "Psicologia";
 
     await loadAll();
 }
 
 async function loadAll() {
+
+    if (DEV_MODE) {
+
+        renderPatients();
+        renderPatientOptions();
+        renderAppointments();
+        renderPayments();
+        renderDocuments();
+        renderDashboard();
+
+        return;
+    }
+
     try {
-        const [patients, appointments, payments, summary, documents] = await Promise.all([
-            request("/api/patients"),
-            request("/api/appointments"),
-            request("/api/payments"),
-            request("/api/payments/summary"),
-            request("/api/documents")
-        ]);
+
+        const [patients, appointments, payments, summary, documents] =
+            await Promise.all([
+                request("/api/patients"),
+                request("/api/appointments"),
+                request("/api/payments"),
+                request("/api/payments/summary"),
+                request("/api/documents")
+            ]);
+
         state.patients = patients || [];
         state.appointments = appointments || [];
         state.payments = payments || [];
-        state.financeSummary = summary || null;
+        state.financeSummary = summary || {};
         state.documents = documents || [];
 
         renderPatients();
@@ -270,14 +302,19 @@ async function loadAll() {
         renderPayments();
         renderDocuments();
         renderDashboard();
-    } catch (error) {
-        setMessage("appMessage", error.message);
+
+    } catch(error) {
+
+        console.error(error);
+
     }
 }
 
 async function saveRecord(baseUrl, data, form) {
     try {
+
         showLoading("Salvando...");
+
         removeEmptyStrings(data);
         const id = data.id;
         delete data.id;
@@ -290,7 +327,9 @@ async function saveRecord(baseUrl, data, form) {
         await loadAll();
     } catch (error) {
         setMessage("appMessage", error.message);
-    } finally {
+    }
+
+    finally {
         hideLoading();
     }
 }
@@ -303,15 +342,10 @@ async function deleteRecord(baseUrl, id) {
         await loadAll();
     } catch (error) {
         setMessage("appMessage", error.message);
-    } finally {
-        hideLoading();
     }
 }
 
 function renderPatients() {
-    const table = byId("patientsTable");
-    if (!table) return;
-
     const rows = state.patients.map(patient => `
         <tr>
             <td>${escapeHtml(patient.fullName)}</td>
@@ -323,7 +357,7 @@ function renderPatients() {
             </td>
         </tr>
     `).join("");
-    table.innerHTML = rows || emptyRow(4);
+    document.getElementById("patientsTable").innerHTML = rows || emptyRow(4);
 }
 
 function renderPatientOptions() {
@@ -336,28 +370,22 @@ function renderPatientOptions() {
 }
 
 function renderAppointments() {
-    const table = byId("appointmentsTable");
-    if (!table) return;
-
     const rows = state.appointments.map(item => `
         <tr>
             <td>${escapeHtml(item.patientName)}</td>
             <td>${formatDateTime(item.startsAt)}</td>
             <td class="status-${item.status}">${translateStatus(item.status)}</td>
-            <td>${item.googleCalendarUrl ? `<a href="${item.googleCalendarUrl}" target="_blank" rel="noreferrer">Abrir</a>` : ""}</td>
+            <td><a href="${item.googleCalendarUrl}" target="_blank" rel="noreferrer">Abrir</a></td>
             <td class="actions">
                 <button type="button" onclick="editAppointment(${item.id})">Editar</button>
                 <button type="button" class="danger" onclick="deleteRecord('/api/appointments', ${item.id})">Excluir</button>
             </td>
         </tr>
     `).join("");
-    table.innerHTML = rows || emptyRow(5);
+    document.getElementById("appointmentsTable").innerHTML = rows || emptyRow(5);
 }
 
 function renderPayments() {
-    const table = byId("paymentsTable");
-    if (!table) return;
-
     const rows = state.payments.map(payment => `
         <tr>
             <td>${escapeHtml(payment.patientName)}</td>
@@ -370,13 +398,10 @@ function renderPayments() {
             </td>
         </tr>
     `).join("");
-    table.innerHTML = rows || emptyRow(5);
+    document.getElementById("paymentsTable").innerHTML = rows || emptyRow(5);
 }
 
 function renderDocuments() {
-    const table = byId("documentsTable");
-    if (!table) return;
-
     const rows = state.documents.map(document => `
         <tr>
             <td>${escapeHtml(document.patientName)}</td>
@@ -389,23 +414,20 @@ function renderDocuments() {
             </td>
         </tr>
     `).join("");
-    table.innerHTML = rows || emptyRow(5);
+    document.getElementById("documentsTable").innerHTML = rows || emptyRow(5);
 }
 
 function renderDashboard() {
-    const metricPatients = byId("metricPatients");
-    if (!metricPatients) return;
+    document.getElementById("metricPatients").textContent = state.patients.length;
+    document.getElementById("metricAppointments").textContent = state.appointments.length;
+    document.getElementById("metricReceived").textContent = currency(state.financeSummary?.received || 0);
+    document.getElementById("metricPending").textContent = currency(state.financeSummary?.pending || 0);
 
-    metricPatients.textContent = state.patients.length;
-    byId("metricAppointments").textContent = state.appointments.length;
-    byId("metricReceived").textContent = currency(state.financeSummary?.received || 0);
-    byId("metricPending").textContent = currency(state.financeSummary?.pending || 0);
-
-    byId("dashboardAppointments").innerHTML = state.appointments.slice(0, 6).map(item => `
+    document.getElementById("dashboardAppointments").innerHTML = state.appointments.slice(0, 6).map(item => `
         <tr><td>${escapeHtml(item.patientName)}</td><td>${formatDateTime(item.startsAt)}</td><td>${translateStatus(item.status)}</td></tr>
     `).join("") || emptyRow(3);
 
-    byId("dashboardFinance").innerHTML = `
+    document.getElementById("dashboardFinance").innerHTML = `
         <tr><td>Pago</td><td>${state.financeSummary?.paidCount || 0}</td><td>${currency(state.financeSummary?.received || 0)}</td></tr>
         <tr><td>Pendente</td><td>${state.financeSummary?.pendingCount || 0}</td><td>${currency(state.financeSummary?.pending || 0)}</td></tr>
         <tr><td>Atrasado</td><td>${state.financeSummary?.overdueCount || 0}</td><td>${currency(state.financeSummary?.overdue || 0)}</td></tr>
@@ -418,8 +440,6 @@ function editPatient(id) {
 
 function editAppointment(id) {
     const item = state.appointments.find(record => record.id === id);
-    if (!item) return;
-
     fillForm("appointmentForm", {
         ...item,
         startsAt: toInputDateTime(item.startsAt),
@@ -436,10 +456,8 @@ function editDocument(id) {
 }
 
 function fillForm(formId, data) {
-    const form = byId(formId);
-    if (!form || !data) return;
-
-    Object.entries(data).forEach(([key, value]) => {
+    const form = document.getElementById(formId);
+    Object.entries(data || {}).forEach(([key, value]) => {
         const field = form.elements[key];
         if (field) {
             field.value = value ?? "";
@@ -448,8 +466,6 @@ function fillForm(formId, data) {
 }
 
 function clearForm(form) {
-    if (!form) return;
-
     form.reset();
     if (form.elements.id) {
         form.elements.id.value = "";
@@ -457,7 +473,18 @@ function clearForm(form) {
 }
 
 async function request(url, options = {}) {
-    const headers = { "Content-Type": "application/json" };
+
+    if (DEV_MODE) {
+
+        console.log("[DEV] API IGNORADA:", url);
+
+        return [];
+    }
+
+    const headers = {
+        "Content-Type": "application/json"
+    };
+
     if (state.token) {
         headers.Authorization = `Bearer ${state.token}`;
     }
@@ -470,7 +497,7 @@ async function request(url, options = {}) {
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Não foi possível concluir a operação.");
+        throw new Error(error.message || "Nao foi possivel concluir a operacao.");
     }
 
     if (response.status === 204) {
@@ -478,6 +505,7 @@ async function request(url, options = {}) {
     }
 
     const text = await response.text();
+
     return text ? JSON.parse(text) : null;
 }
 
@@ -494,10 +522,7 @@ function removeEmptyStrings(data) {
 }
 
 function setMessage(id, message) {
-    const element = byId(id);
-    if (element) {
-        element.textContent = message;
-    }
+    document.getElementById(id).textContent = message;
 }
 
 function emptyRow(columns) {
@@ -524,27 +549,20 @@ function translateStatus(status) {
     return {
         SCHEDULED: "Agendado",
         CONFIRMED: "Confirmado",
-        COMPLETED: "Concluído",
+        COMPLETED: "Concluido",
         CANCELED: "Cancelado",
         PENDING: "Pendente",
         PAID: "Pago",
-        OVERDUE: "Atrasado",
-        AGENDADO: "Agendado",
-        CONFIRMADO: "Confirmado",
-        FINALIZADO: "Finalizado",
-        CANCELADO: "Cancelado",
-        PENDENTE: "Pendente",
-        PAGO: "Pago",
-        ATRASADO: "Atrasado"
+        OVERDUE: "Atrasado"
     }[status] || status;
 }
 
 function translateDocumentType(type) {
     return {
-        REPORT: "Relatório",
+        REPORT: "Relatorio",
         ANAMNESIS: "Anamnese",
         CERTIFICATE: "Atestado",
-        EVOLUTION: "Evolução",
+        EVOLUTION: "Evolucao",
         OTHER: "Outro"
     }[type] || type;
 }
@@ -557,3 +575,24 @@ function escapeHtml(value) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
+
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    showDashboardSkeleton();
+
+    try {
+
+        await renderShell();
+
+    } catch(error) {
+
+        console.error(error);
+
+    } finally {
+
+        hideDashboardSkeleton();
+
+    }
+
+});
