@@ -54,12 +54,13 @@
                 <label>E-mail<input name="email" type="email"></label>
                 <label>Nascimento<input name="birthDate" type="date"></label>
                 <label>CPF<input name="cpf"></label>
+                <label>Valor da sessão<input name="sessionValue" type="number" min="0" step="0.01" placeholder="0,00"></label>
                 <label class="wide">Observações clínicas<textarea name="clinicalNotes" rows="3"></textarea></label>
                 <button type="submit">Salvar paciente</button>
                 <button type="button" class="secondary" data-reset="patientForm">Limpar</button>
             </form>
             <table>
-                <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Sessão</th><th>Ações</th></tr></thead>
                 <tbody id="patientsTable"></tbody>
             </table>
         </section>

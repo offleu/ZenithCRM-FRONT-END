@@ -47,6 +47,14 @@
             <p id="appMessage" class="message"></p>
         </header>
         <section id="appointments" class="view active">
+            <section class="day-agenda">
+                <div>
+                    <h3>Agenda do dia</h3>
+                    <p class="muted" id="dayAgendaDate"></p>
+                </div>
+                <div id="dayAgendaList" class="day-agenda-list"></div>
+            </section>
+
             <form id="appointmentForm" class="editor">
                 <input type="hidden" name="id">
                 <label>Paciente<select name="patientId" required></select></label>
@@ -59,7 +67,7 @@
                 <button type="button" class="secondary" data-reset="appointmentForm">Limpar</button>
             </form>
             <table>
-                <thead><tr><th>Paciente</th><th>Início</th><th>Status</th><th>Google</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Paciente</th><th>Início</th><th>Valor</th><th>Status</th><th>Atendimento</th><th>Google</th><th>Ações</th></tr></thead>
                 <tbody id="appointmentsTable"></tbody>
             </table>
         </section>
