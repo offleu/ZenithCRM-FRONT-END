@@ -1,5 +1,8 @@
+const DEV_MODE = false;
 const API_BASE_URL = localStorage.getItem("zenithApiUrl") || "https://zenithcrm-deploy.onrender.com";
 const APP_HOME = "/dashboard.html";
+const SESSION_VALUES_KEY = "zenithPatientSessionValues";
+const ATTENDANCE_KEY = "zenithAttendanceStatus";
 
 const state = {
     token: localStorage.getItem("zenithToken"),
@@ -8,7 +11,9 @@ const state = {
     appointments: [],
     payments: [],
     documents: [],
-    financeSummary: null
+    financeSummary: null,
+    patientSessionValues: readLocalJson(SESSION_VALUES_KEY, {}),
+    attendanceStatus: readLocalJson(ATTENDANCE_KEY, {})
 };
 
 const views = {
@@ -63,11 +68,9 @@ function onSubmit(id, handler) {
 
 function showPageSkeleton() {
     const appView = byId("appView");
-    const authView = byId("authView");
-
     if (!appView) return;
 
-    authView?.classList.add("hidden");
+    byId("authView")?.classList.add("hidden");
     appView.classList.remove("hidden");
     appView.classList.add("is-loading");
     ensurePageSkeleton();
@@ -93,29 +96,20 @@ function ensurePageSkeleton() {
 function pageSkeletonMarkup(page) {
     if (page === "dashboard") {
         return `
-            <div class="skeleton-grid">
-                ${skeletonCards(4)}
-            </div>
+            <div class="skeleton-grid">${skeletonCards(4)}</div>
             <div class="skeleton-split">
                 <div class="skeleton-block skeleton-block-large"></div>
                 <div class="skeleton-block skeleton-block-large"></div>
             </div>
-        `;
-    }
-
-    if (page === "documents") {
-        return `
-            <div class="skeleton-form skeleton-form-documents">
-                ${skeletonLines(4)}
+            <div class="skeleton-split">
+                <div class="skeleton-block"></div>
+                <div class="skeleton-block"></div>
             </div>
-            <div class="skeleton-block skeleton-block-table"></div>
         `;
     }
 
     return `
-        <div class="skeleton-form">
-            ${skeletonLines(8)}
-        </div>
+        <div class="skeleton-form">${skeletonLines(page === "documents" ? 4 : 8)}</div>
         <div class="skeleton-block skeleton-block-table"></div>
     `;
 }
@@ -163,7 +157,7 @@ function bindAuth() {
 
 function bindForms() {
     onSubmit("patientForm", async event => {
-        await saveRecord("/api/patients", formData(event.target), event.target);
+        await savePatient(formData(event.target), event.target);
     });
 
     onSubmit("appointmentForm", async event => {
@@ -213,13 +207,7 @@ async function authenticate(url, body) {
         localStorage.setItem("zenithToken", state.token);
         localStorage.setItem("zenithUser", JSON.stringify(state.user));
         setMessage("authMessage", "");
-
-        if (currentPage() === "login") {
-            window.location.href = APP_HOME;
-            return;
-        }
-
-        await renderShell();
+        window.location.href = APP_HOME;
     } catch (error) {
         setMessage("authMessage", error.message);
     } finally {
@@ -258,20 +246,65 @@ async function loadAll() {
             request("/api/payments/summary"),
             request("/api/documents")
         ]);
+
         state.patients = patients || [];
         state.appointments = appointments || [];
         state.payments = payments || [];
-        state.financeSummary = summary || null;
+        state.financeSummary = summary || {};
         state.documents = documents || [];
 
-        renderPatients();
-        renderPatientOptions();
-        renderAppointments();
-        renderPayments();
-        renderDocuments();
-        renderDashboard();
+        renderAll();
     } catch (error) {
         setMessage("appMessage", error.message);
+    }
+}
+
+function renderAll() {
+    renderPatients();
+    renderPatientOptions();
+    renderAppointments();
+    renderPayments();
+    renderDocuments();
+    renderDashboard();
+    renderDayAgenda();
+    renderCharts();
+}
+
+async function savePatient(data, form) {
+    const sessionValue = data.sessionValue;
+    const patientIdentity = {
+        id: data.id,
+        fullName: data.fullName,
+        email: data.email,
+        cpf: data.cpf
+    };
+
+    delete data.sessionValue;
+
+    try {
+        showLoading("Salvando...");
+        removeEmptyStrings(data);
+        const id = data.id;
+        delete data.id;
+        const saved = await request(id ? `/api/patients/${id}` : "/api/patients", {
+            method: id ? "PUT" : "POST",
+            body: data
+        });
+
+        clearForm(form);
+        await loadAll();
+
+        const patientId = id || saved?.id || findPatientId(patientIdentity);
+        if (patientId) {
+            setPatientSessionValue(patientId, sessionValue);
+            renderAll();
+        }
+
+        setMessage("appMessage", "Paciente salvo com valor de sessão vinculado.");
+    } catch (error) {
+        setMessage("appMessage", error.message);
+    } finally {
+        hideLoading();
     }
 }
 
@@ -317,13 +350,14 @@ function renderPatients() {
             <td>${escapeHtml(patient.fullName)}</td>
             <td>${escapeHtml(patient.phone || "")}</td>
             <td>${escapeHtml(patient.email || "")}</td>
+            <td>${formatOptionalCurrency(getPatientSessionValue(patient.id))}</td>
             <td class="actions">
                 <button type="button" onclick="editPatient(${patient.id})">Editar</button>
                 <button type="button" class="danger" onclick="deleteRecord('/api/patients', ${patient.id})">Excluir</button>
             </td>
         </tr>
     `).join("");
-    table.innerHTML = rows || emptyRow(4);
+    table.innerHTML = rows || emptyRow(5);
 }
 
 function renderPatientOptions() {
@@ -339,11 +373,13 @@ function renderAppointments() {
     const table = byId("appointmentsTable");
     if (!table) return;
 
-    const rows = state.appointments.map(item => `
+    const rows = sortedAppointments().map(item => `
         <tr>
-            <td>${escapeHtml(item.patientName)}</td>
+            <td>${escapeHtml(getAppointmentPatientName(item))}</td>
             <td>${formatDateTime(item.startsAt)}</td>
+            <td>${formatOptionalCurrency(getAppointmentSessionValue(item))}</td>
             <td class="status-${item.status}">${translateStatus(item.status)}</td>
+            <td>${attendanceBadge(item.id)}</td>
             <td>${item.googleCalendarUrl ? `<a href="${item.googleCalendarUrl}" target="_blank" rel="noreferrer">Abrir</a>` : ""}</td>
             <td class="actions">
                 <button type="button" onclick="editAppointment(${item.id})">Editar</button>
@@ -351,7 +387,7 @@ function renderAppointments() {
             </td>
         </tr>
     `).join("");
-    table.innerHTML = rows || emptyRow(5);
+    table.innerHTML = rows || emptyRow(7);
 }
 
 function renderPayments() {
@@ -401,8 +437,8 @@ function renderDashboard() {
     byId("metricReceived").textContent = currency(state.financeSummary?.received || 0);
     byId("metricPending").textContent = currency(state.financeSummary?.pending || 0);
 
-    byId("dashboardAppointments").innerHTML = state.appointments.slice(0, 6).map(item => `
-        <tr><td>${escapeHtml(item.patientName)}</td><td>${formatDateTime(item.startsAt)}</td><td>${translateStatus(item.status)}</td></tr>
+    byId("dashboardAppointments").innerHTML = sortedAppointments().slice(0, 6).map(item => `
+        <tr><td>${escapeHtml(getAppointmentPatientName(item))}</td><td>${formatDateTime(item.startsAt)}</td><td>${translateStatus(item.status)}</td></tr>
     `).join("") || emptyRow(3);
 
     byId("dashboardFinance").innerHTML = `
@@ -412,8 +448,97 @@ function renderDashboard() {
     `;
 }
 
+function renderDayAgenda() {
+    const todayItems = appointmentsForToday();
+    const todayLabel = new Date().toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long"
+    });
+
+    setMessage("dayAgendaDate", todayLabel);
+    setMessage("dashboardDayAgendaDate", todayLabel);
+
+    renderAgendaList("dayAgendaList", todayItems);
+    renderAgendaList("dashboardDayAgendaList", todayItems);
+}
+
+function renderAgendaList(targetId, items) {
+    const list = byId(targetId);
+    if (!list) return;
+
+    list.innerHTML = items.map(item => {
+        const canAct = canStartAppointment(item);
+        return `
+            <article class="day-agenda-item">
+                <time>${formatTime(item.startsAt)}</time>
+                <div>
+                    <strong>${escapeHtml(getAppointmentPatientName(item))}</strong>
+                    <span>${formatOptionalCurrency(getAppointmentSessionValue(item))} · ${translateStatus(item.status)}</span>
+                </div>
+                <div class="attendance-actions">
+                    <button type="button" ${canAct ? "" : "disabled"} onclick="setAttendanceStatus(${item.id}, 'STARTED')">Iniciar</button>
+                    <button type="button" class="secondary" onclick="setAttendanceStatus(${item.id}, 'FINISHED')">Finalizar</button>
+                    <button type="button" class="danger" onclick="setAttendanceStatus(${item.id}, 'ABSENT')">Ausência</button>
+                </div>
+                ${attendanceBadge(item.id)}
+            </article>
+        `;
+    }).join("") || '<p class="muted">Nenhum atendimento para hoje.</p>';
+}
+
+function renderCharts() {
+    renderWeeklyAppointmentsChart();
+    renderFinanceChart();
+}
+
+function renderWeeklyAppointmentsChart() {
+    const chart = byId("weeklyAppointmentsChart");
+    if (!chart) return;
+
+    const days = nextDays(7);
+    const counts = days.map(day => state.appointments.filter(item => isSameDate(item.startsAt, day)).length);
+    const max = Math.max(...counts, 1);
+
+    chart.innerHTML = days.map((day, index) => {
+        const percent = Math.max(8, (counts[index] / max) * 100);
+        return `
+            <div class="bar-chart-item">
+                <div class="bar-track"><span style="height: ${percent}%"></span></div>
+                <strong>${counts[index]}</strong>
+                <small>${day.toLocaleDateString("pt-BR", { weekday: "short" })}</small>
+            </div>
+        `;
+    }).join("");
+}
+
+function renderFinanceChart() {
+    const chart = byId("financeChart");
+    const legend = byId("financeLegend");
+    if (!chart || !legend) return;
+
+    const received = Number(state.financeSummary?.received || 0);
+    const pending = Number(state.financeSummary?.pending || 0);
+    const overdue = Number(state.financeSummary?.overdue || 0);
+    const total = received + pending + overdue || 1;
+    const receivedEnd = (received / total) * 360;
+    const pendingEnd = receivedEnd + (pending / total) * 360;
+
+    chart.style.background = `conic-gradient(#1f6845 0deg ${receivedEnd}deg, #134ad9 ${receivedEnd}deg ${pendingEnd}deg, #8b1e1e ${pendingEnd}deg 360deg)`;
+    chart.innerHTML = `<strong>${currency(received + pending + overdue)}</strong><span>Total</span>`;
+    legend.innerHTML = `
+        <span><i class="legend-ok"></i>Recebido ${currency(received)}</span>
+        <span><i class="legend-primary"></i>Pendente ${currency(pending)}</span>
+        <span><i class="legend-danger"></i>Atrasado ${currency(overdue)}</span>
+    `;
+}
+
 function editPatient(id) {
-    fillForm("patientForm", state.patients.find(item => item.id === id));
+    const patient = state.patients.find(item => item.id === id);
+    fillForm("patientForm", {
+        ...patient,
+        sessionValue: getPatientSessionValue(id) || ""
+    });
 }
 
 function editAppointment(id) {
@@ -433,6 +558,24 @@ function editPayment(id) {
 
 function editDocument(id) {
     fillForm("documentForm", state.documents.find(item => item.id === id));
+}
+
+function setAttendanceStatus(id, status) {
+    state.attendanceStatus[id] = status;
+    writeLocalJson(ATTENDANCE_KEY, state.attendanceStatus);
+    renderAppointments();
+    renderDayAgenda();
+}
+
+function attendanceBadge(id) {
+    const status = state.attendanceStatus[id];
+    const label = {
+        STARTED: "Em atendimento",
+        FINISHED: "Finalizado",
+        ABSENT: "Ausência"
+    }[status] || "Aguardando";
+
+    return `<span class="attendance-badge attendance-${status || "WAITING"}">${label}</span>`;
 }
 
 function fillForm(formId, data) {
@@ -457,6 +600,11 @@ function clearForm(form) {
 }
 
 async function request(url, options = {}) {
+    if (DEV_MODE) {
+        console.log("[DEV] API ignorada:", url);
+        return [];
+    }
+
     const headers = { "Content-Type": "application/json" };
     if (state.token) {
         headers.Authorization = `Bearer ${state.token}`;
@@ -493,6 +641,77 @@ function removeEmptyStrings(data) {
     });
 }
 
+function findPatientId(identity) {
+    const found = state.patients.find(patient => {
+        if (identity.cpf && patient.cpf === identity.cpf) return true;
+        if (identity.email && patient.email === identity.email) return true;
+        return identity.fullName && patient.fullName === identity.fullName;
+    });
+
+    return found?.id;
+}
+
+function setPatientSessionValue(patientId, value) {
+    if (value === "" || value === null || value === undefined) {
+        delete state.patientSessionValues[patientId];
+    } else {
+        state.patientSessionValues[patientId] = Number(value);
+    }
+
+    writeLocalJson(SESSION_VALUES_KEY, state.patientSessionValues);
+}
+
+function getPatientSessionValue(patientId) {
+    return state.patientSessionValues[patientId];
+}
+
+function getAppointmentSessionValue(appointment) {
+    const patient = getAppointmentPatient(appointment);
+    return patient ? getPatientSessionValue(patient.id) : null;
+}
+
+function getAppointmentPatient(appointment) {
+    return state.patients.find(patient =>
+        Number(patient.id) === Number(appointment.patientId) ||
+        patient.fullName === appointment.patientName
+    );
+}
+
+function getAppointmentPatientName(appointment) {
+    return appointment.patientName || getAppointmentPatient(appointment)?.fullName || "";
+}
+
+function sortedAppointments() {
+    return [...state.appointments].sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+}
+
+function appointmentsForToday() {
+    return sortedAppointments().filter(item => isSameDate(item.startsAt, new Date()));
+}
+
+function canStartAppointment(appointment) {
+    const startsAt = new Date(appointment.startsAt).getTime();
+    const now = Date.now();
+    return now >= startsAt - 15 * 60 * 1000;
+}
+
+function nextDays(total) {
+    return Array.from({ length: total }, (_, index) => {
+        const date = new Date();
+        date.setDate(date.getDate() + index);
+        date.setHours(0, 0, 0, 0);
+        return date;
+    });
+}
+
+function isSameDate(value, date) {
+    if (!value) return false;
+    const current = new Date(value);
+    return current.getFullYear() === date.getFullYear() &&
+        current.getMonth() === date.getMonth() &&
+        current.getDate() === date.getDate();
+}
+
 function setMessage(id, message) {
     const element = byId(id);
     if (element) {
@@ -508,12 +727,20 @@ function currency(value) {
     return Number(value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function formatOptionalCurrency(value) {
+    return value || value === 0 ? currency(value) : "Não definido";
+}
+
 function formatDate(value) {
     return value ? new Date(`${value}T00:00:00`).toLocaleDateString("pt-BR") : "";
 }
 
 function formatDateTime(value) {
     return value ? new Date(value).toLocaleString("pt-BR") : "";
+}
+
+function formatTime(value) {
+    return value ? new Date(value).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
 }
 
 function toInputDateTime(value) {
@@ -547,6 +774,18 @@ function translateDocumentType(type) {
         EVOLUTION: "Evolução",
         OTHER: "Outro"
     }[type] || type;
+}
+
+function readLocalJson(key, fallback) {
+    try {
+        return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    } catch {
+        return fallback;
+    }
+}
+
+function writeLocalJson(key, value) {
+    localStorage.setItem(key, JSON.stringify(value));
 }
 
 function escapeHtml(value) {

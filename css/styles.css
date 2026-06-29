@@ -43,6 +43,13 @@ button:hover {
     background: var(--primary-dark);
 }
 
+button:disabled {
+    border-color: var(--line);
+    background: #dce2e8;
+    color: #7b8794;
+    cursor: not-allowed;
+}
+
 .secondary {
     border-color: var(--line);
     background: #f6f7f9;
@@ -238,6 +245,19 @@ nav {
     gap: 18px;
 }
 
+.page-skeleton {
+    display: none;
+}
+
+.app-shell.is-loading .view {
+    display: none;
+}
+
+.app-shell.is-loading .page-skeleton {
+    display: grid;
+    gap: 18px;
+}
+
 .metrics {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -276,6 +296,208 @@ table {
 
 .split section {
     padding: 16px;
+}
+
+.day-agenda,
+.chart-panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 16px;
+}
+
+.day-agenda {
+    display: grid;
+    gap: 12px;
+}
+
+.day-agenda .muted {
+    margin: 4px 0 0;
+    font-size: 13px;
+}
+
+.day-agenda-list {
+    display: grid;
+    gap: 10px;
+}
+
+.day-agenda-list.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.day-agenda-item {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr) auto auto;
+    gap: 12px;
+    align-items: center;
+    border: 1px solid var(--line);
+    background: #f9fafc;
+    padding: 12px;
+}
+
+.day-agenda-item time {
+    color: var(--primary-dark);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.day-agenda-item strong,
+.day-agenda-item span {
+    display: block;
+}
+
+.day-agenda-item span {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.attendance-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.attendance-actions button {
+    min-height: 32px;
+    padding: 0 10px;
+}
+
+.attendance-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--muted);
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.attendance-STARTED {
+    border-color: #8fb5ff;
+    background: #eaf2ff;
+    color: var(--primary-dark);
+}
+
+.attendance-FINISHED {
+    border-color: #94c9ad;
+    background: #e9f7ef;
+    color: var(--ok);
+}
+
+.attendance-ABSENT {
+    border-color: #d9a0a0;
+    background: #fff0f0;
+    color: var(--danger);
+}
+
+.bar-chart {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 10px;
+    min-height: 220px;
+    align-items: end;
+}
+
+.bar-chart-item {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+}
+
+.bar-track {
+    width: 100%;
+    height: 150px;
+    display: flex;
+    align-items: end;
+    border: 1px solid var(--line);
+    background: #f4f7fb;
+}
+
+.bar-track span {
+    display: block;
+    width: 100%;
+    background: var(--primary);
+}
+
+.bar-chart-item strong {
+    font-size: 16px;
+}
+
+.bar-chart-item small {
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.donut-chart {
+    width: 190px;
+    height: 190px;
+    margin: 4px auto 18px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    position: relative;
+}
+
+.donut-chart::before {
+    content: "";
+    position: absolute;
+    width: 112px;
+    height: 112px;
+    background: var(--panel);
+    border-radius: 50%;
+}
+
+.donut-chart strong,
+.donut-chart span {
+    position: relative;
+    z-index: 1;
+}
+
+.donut-chart strong {
+    font-size: 18px;
+}
+
+.donut-chart span {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 34px;
+    position: absolute;
+}
+
+.chart-legend {
+    display: grid;
+    gap: 8px;
+}
+
+.chart-legend span {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.chart-legend i {
+    width: 12px;
+    height: 12px;
+    display: inline-block;
+}
+
+.legend-ok {
+    background: var(--ok);
+}
+
+.legend-primary {
+    background: var(--primary);
+}
+
+.legend-danger {
+    background: var(--danger);
 }
 
 .editor {
@@ -322,13 +544,18 @@ td.actions button {
 
 .status-PAID,
 .status-COMPLETED,
-.status-CONFIRMED {
+.status-CONFIRMED,
+.status-PAGO,
+.status-FINALIZADO,
+.status-CONFIRMADO {
     color: var(--ok);
     font-weight: 700;
 }
 
 .status-OVERDUE,
-.status-CANCELED {
+.status-CANCELED,
+.status-ATRASADO,
+.status-CANCELADO {
     color: var(--danger);
     font-weight: 700;
 }
@@ -348,9 +575,22 @@ td.actions button {
 
     .metrics,
     .split,
+    .skeleton-grid,
+    .skeleton-split,
+    .day-agenda-list.compact,
     .editor,
-    .document-editor {
+    .document-editor,
+    .skeleton-form {
         grid-template-columns: 1fr;
+    }
+
+    .day-agenda-item {
+        grid-template-columns: 1fr;
+        align-items: start;
+    }
+
+    .attendance-actions {
+        justify-content: start;
     }
 
     .topbar {
@@ -411,6 +651,54 @@ td.actions button {
     border-radius: 10px;
 }
 
+.skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.skeleton-split {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 12px;
+}
+
+.skeleton-card-inline,
+.skeleton-block,
+.skeleton-form {
+    border: 1px solid var(--line);
+    background: var(--panel);
+}
+
+.skeleton-card-inline {
+    height: 96px;
+}
+
+.skeleton-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+
+.skeleton-line {
+    height: 38px;
+}
+
+.skeleton-form .skeleton-line:nth-child(5),
+.skeleton-form .skeleton-line:nth-child(8) {
+    grid-column: 1 / -1;
+    height: 86px;
+}
+
+.skeleton-block {
+    min-height: 260px;
+}
+
+.skeleton-block-large {
+    min-height: 340px;
+}
+
 .skeleton-card {
     height: 120px;
     margin: 20px;
@@ -429,4 +717,12 @@ td.actions button {
     to {
         background-position: -200% 0;
     }
+}
+
+
+.logo-small {
+    width: min(200px, 100%);
+    height: auto;
+    display: block;
+    padding: 0 0 20px;
 }
