@@ -1,5 +1,4 @@
-const DEV_MODE = false;
-const API_BASE_URL = localStorage.getItem("zenithApiUrl") || "https://zenithcrm-deploy.onrender.com";
+const API_BASE_URL = "https://zenithcrm-deploy.onrender.com";
 const APP_HOME = "/dashboard.html";
 const SESSION_VALUES_KEY = "zenithPatientSessionValues";
 const ATTENDANCE_KEY = "zenithAttendanceStatus";
@@ -600,11 +599,6 @@ function clearForm(form) {
 }
 
 async function request(url, options = {}) {
-    if (DEV_MODE) {
-        console.log("[DEV] API ignorada:", url);
-        return [];
-    }
-
     const headers = { "Content-Type": "application/json" };
     if (state.token) {
         headers.Authorization = `Bearer ${state.token}`;
