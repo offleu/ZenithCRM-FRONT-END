@@ -278,13 +278,11 @@ async function savePatient(data, form) {
         cpf: data.cpf
     };
 
-    delete data.sessionValue;
 
     try {
         showLoading("Salvando...");
         removeEmptyStrings(data);
         const id = data.id;
-        delete data.id;
         const saved = await request(id ? `/api/patients/${id}` : "/api/patients", {
             method: id ? "PUT" : "POST",
             body: data
