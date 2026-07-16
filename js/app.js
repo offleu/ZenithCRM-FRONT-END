@@ -366,6 +366,85 @@ function renderPatientOptions() {
     });
 }
 
+
+async function confirmAppointment(id) {
+    await request(`/api/appointments/${id}/confirm`, {
+        method: "POST"
+    });
+
+    await loadAppointments();
+}
+
+async function startAppointment(id) {
+    await request(`/api/appointments/${id}/start`, {
+        method: "POST"
+    });
+
+    await loadAppointments();
+}
+
+async function finishAppointment(id) {
+    await request(`/api/appointments/${id}/finish`, {
+        method: "POST"
+    });
+
+    await loadAppointments();
+    await loadPayments();
+}
+
+async function registerAppointmentAbsence(id) {
+    await request(`/api/appointments/${id}/absence`, {
+        method: "POST"
+    });
+
+    await loadAppointments();
+}
+
+
+function appointmentActionButtons(item) {
+
+    switch (item.status) {
+
+        case "SCHEDULED":
+            return `
+                <button onclick="confirmAppointment(${item.id})">
+                    Confirmar
+                </button>
+            `;
+
+        case "CONFIRMED":
+            return `
+                <button onclick="startAppointment(${item.id})">
+                    Iniciar
+                </button>
+            `;
+
+        case "IN_PROGRESS":
+            return `
+                <button onclick="finishAppointment(${item.id})">
+                    Finalizar
+                </button>
+
+                <button class="danger"
+                    onclick="registerAppointmentAbsence(${item.id})">
+                    Ausência
+                </button>
+            `;
+
+        case "COMPLETED":
+            return `<span class="success">✔ Atendimento concluído</span>`;
+
+        case "ABSENT":
+            return `<span class="danger">✖ Ausência registrada</span>`;
+
+        default:
+            return "";
+    }
+
+}
+
+
+
 function renderAppointments() {
     const table = byId("appointmentsTable");
     if (!table) return;
@@ -465,7 +544,6 @@ function renderAgendaList(targetId, items) {
     if (!list) return;
 
     list.innerHTML = items.map(item => {
-        const canAct = canStartAppointment(item);
         return `
             <article class="day-agenda-item">
                 <time>${formatTime(item.startsAt)}</time>
@@ -474,9 +552,7 @@ function renderAgendaList(targetId, items) {
                     <span>${formatOptionalCurrency(getAppointmentSessionValue(item))} · ${translateStatus(item.status)}</span>
                 </div>
                 <div class="attendance-actions">
-                    <button type="button" ${canAct ? "" : "disabled"} onclick="setAttendanceStatus(${item.id}, 'STARTED')">Iniciar</button>
-                    <button type="button" class="secondary" onclick="setAttendanceStatus(${item.id}, 'FINISHED')">Finalizar</button>
-                    <button type="button" class="danger" onclick="setAttendanceStatus(${item.id}, 'ABSENT')">Ausência</button>
+                    ${appointmentActionButtons(item)}
                 </div>
                 ${attendanceBadge(item.id)}
             </article>
