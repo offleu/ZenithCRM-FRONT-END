@@ -673,13 +673,15 @@ function clearForm(form) {
 }
 
 async function request(url, options = {}) {
-    const headers = { "Content-Type": "application/json" };
-    if (state.token) {
-        headers.Authorization = `Bearer ${state.token}`;
-    }
+
+    const headers = {
+        "Content-Type": "application/json",
+        ...options.headers
+    };
 
     const response = await fetch(`${API_BASE_URL}${url}`, {
         ...options,
+        credentials: "include",
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined
     });
