@@ -817,20 +817,20 @@ function toInputDateTime(value) {
 
 function translateStatus(status) {
     return {
-        SCHEDULED: "Agendado",
-        CONFIRMED: "Confirmado",
-        COMPLETED: "Concluído",
-        CANCELED: "Cancelado",
-        PENDING: "Pendente",
-        PAID: "Pago",
-        OVERDUE: "Atrasado",
-        AGENDADO: "Agendado",
-        CONFIRMADO: "Confirmado",
-        FINALIZADO: "Finalizado",
-        CANCELADO: "Cancelado",
-        PENDENTE: "Pendente",
-        PAGO: "Pago",
-        ATRASADO: "Atrasado"
+        SCHEDULED: "SCHEDULED",
+        CONFIRMED: "CONFIRMED",
+        COMPLETED: "COMPLETED",
+        CANCELED: "CANCELED",
+        PENDING: "PENDING",
+        PAID: "PAID",
+        OVERDUE: "OVERDUE",
+        AGENDADO: "AGENDADO",
+        CONFIRMADO: "CONFIRMADO",
+        FINALIZADO: "FINALIZADO",
+        CANCELADO: "CANCELADO",
+        PENDENTE: "PENDENTE",
+        PAGO: "PAGO",
+        ATRASADO: "ATRASADO"
     }[status] || status;
 }
 
